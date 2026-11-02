@@ -1,0 +1,47 @@
+[
+  {
+    "episode": 1,
+    "seed": 10000,
+    "reward": 5.612018738395536,
+    "status": "COLLISION",
+    "simulated_seconds": 7.0,
+    "collision": true,
+    "encounter_count": 1,
+    "overtake_count": 2,
+    "lane_changes": 3,
+    "following_brake_steps": 0,
+    "close_following_steps": 3,
+    "min_front_gap": 5.573483196044265,
+    "mean_speed": 27.085955876109413
+  },
+  {
+    "episode": 2,
+    "seed": 10001,
+    "reward": 13.68412607094869,
+    "status": "COLLISION",
+    "simulated_seconds": 16.0,
+    "collision": true,
+    "encounter_count": 4,
+    "overtake_count": 5,
+    "lane_changes": 5,
+    "following_brake_steps": 3,
+    "close_following_steps": 11,
+    "min_front_gap": 1.8127366274711676e-09,
+    "mean_speed": 27.12263794394825
+  },
+  {
+    "episode": 3,
+    "seed": 10002,
+    "reward": 16.228631839049825,
+    "status": "COLLISION",
+    "simulated_seconds": 18.0,
+    "collision": true,
+    "encounter_count": 4,
+    "overtake_count": 8,
+    "lane_changes": 5,
+    "following_brake_steps": 1,
+    "close_following_steps": 10,
+    "min_front_gap": 1.5277199875148426,
+    "mean_speed": 28.35110774207203
+  }
+]

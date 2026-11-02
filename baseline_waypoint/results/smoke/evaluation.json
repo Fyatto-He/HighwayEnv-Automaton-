@@ -1,0 +1,124 @@
+{
+  "model": "C:\\Users\\marco\\CODE\\Capstone\\HighwayEnv-Automaton-\\baseline_waypoint\\models\\smoke.zip",
+  "first_seed": 10000,
+  "environment": {
+    "env_config": {
+      "lanes_count": 3,
+      "vehicles_count": 8,
+      "controlled_vehicles": 1,
+      "vehicles_density": 0.7,
+      "ego_spacing": 2.0,
+      "duration": 18.0,
+      "simulation_frequency": 10,
+      "policy_frequency": 10,
+      "offroad_terminal": false,
+      "action": {
+        "type": "DiscreteMetaAction",
+        "target_speeds": [
+          15,
+          20,
+          25
+        ]
+      },
+      "observation": {
+        "type": "Kinematics",
+        "vehicles_count": 7,
+        "features": [
+          "presence",
+          "x",
+          "y",
+          "vx",
+          "vy"
+        ],
+        "absolute": false,
+        "normalize": true,
+        "clip": true,
+        "see_behind": true,
+        "include_obstacles": false,
+        "order": "sorted",
+        "features_range": {
+          "x": [
+            -200,
+            200
+          ],
+          "y": [
+            -12,
+            12
+          ],
+          "vx": [
+            -30,
+            30
+          ],
+          "vy": [
+            -10,
+            10
+          ]
+        }
+      },
+      "screen_width": 1200,
+      "screen_height": 360,
+      "scaling": 5.0,
+      "centering_position": [
+        0.18,
+        0.55
+      ],
+      "real_time_rendering": false
+    },
+    "goal_config": {
+      "distance_range": [
+        110.0,
+        170.0
+      ],
+      "radius": 2.5,
+      "initial_speed": 20.0,
+      "position_scale": [
+        200.0,
+        12.0
+      ]
+    },
+    "reward_weights": {
+      "goal": 50.0,
+      "collision": 50.0,
+      "progress": 0.1,
+      "time": 0.05
+    }
+  },
+  "ppo": {
+    "episodes": 5,
+    "success_rate": 0.6,
+    "collision_rate": 0.0,
+    "timeout_rate": 0.4,
+    "average_episode_reward": 29.404259781698272,
+    "average_time_to_goal_seconds": 6.633333333333326,
+    "average_final_distance_meters": 87.88347023965703,
+    "success_rate_by_goal_lane": {
+      "1": 0.5,
+      "2": 1.0
+    },
+    "average_reward_components": {
+      "goal": 30.0,
+      "collision": 0.0,
+      "progress": 5.014259781698255,
+      "time": -5.609999999999995
+    }
+  },
+  "random": {
+    "episodes": 5,
+    "success_rate": 0.4,
+    "collision_rate": 0.0,
+    "timeout_rate": 0.6,
+    "average_episode_reward": 13.220945042902676,
+    "average_time_to_goal_seconds": 7.049999999999991,
+    "average_final_distance_meters": 137.41661762761288,
+    "success_rate_by_goal_lane": {
+      "1": 0.5,
+      "2": 0.0
+    },
+    "average_reward_components": {
+      "goal": 20.0,
+      "collision": 0.0,
+      "progress": 0.06094504290267899,
+      "time": -6.8399999999999945
+    }
+  }
+}

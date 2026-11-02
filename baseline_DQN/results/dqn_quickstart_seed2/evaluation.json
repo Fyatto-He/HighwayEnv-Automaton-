@@ -1,0 +1,43 @@
+{
+  "model": "C:\\Users\\marco\\CODE\\Capstone\\HighwayEnv-Automaton-\\baseline_DQN\\models\\dqn_quickstart_seed2.zip",
+  "first_seed": 10000,
+  "environment": {
+    "scenario": "quickstart",
+    "env_config": {},
+    "traffic_config": {}
+  },
+  "dqn": {
+    "episodes": 50,
+    "collision_rate": 0.36,
+    "completion_rate": 0.64,
+    "average_episode_reward": 19.93173053571662,
+    "average_episode_duration_seconds": 25.58,
+    "average_speed_mps": 22.749977146697674,
+    "average_distance_travelled_meters": 581.4383415031473,
+    "episodes_with_close_encounter_rate": 1.0,
+    "episodes_with_overtake_rate": 0.86,
+    "average_distinct_close_encounters": 1.6,
+    "average_overtakes": 2.1,
+    "average_lane_changes": 1.44,
+    "average_close_following_steps": 18.04,
+    "average_following_brake_steps": 2.7,
+    "average_minimum_front_gap_meters": 7.493258462960357
+  },
+  "random": {
+    "episodes": 50,
+    "collision_rate": 0.92,
+    "completion_rate": 0.08,
+    "average_episode_reward": 8.25409618765919,
+    "average_episode_duration_seconds": 11.06,
+    "average_speed_mps": 24.55156358272773,
+    "average_distance_travelled_meters": 263.2846146039957,
+    "episodes_with_close_encounter_rate": 0.94,
+    "episodes_with_overtake_rate": 0.48,
+    "average_distinct_close_encounters": 1.68,
+    "average_overtakes": 0.8,
+    "average_lane_changes": 2.94,
+    "average_close_following_steps": 7.02,
+    "average_following_brake_steps": 0.74,
+    "average_minimum_front_gap_meters": 2.5406950918081463
+  }
+}

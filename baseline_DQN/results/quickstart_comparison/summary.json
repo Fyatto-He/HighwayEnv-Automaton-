@@ -1,0 +1,284 @@
+{
+  "reference": "https://highway-env.farama.org/quickstart/#training-an-agent",
+  "runs": [
+    {
+      "run": "dqn_quickstart_seed0",
+      "training_seed": 0,
+      "actual_timesteps": 20000,
+      "training_seconds": 738.7504784000048,
+      "evaluation_first_seed": 10000,
+      "dqn": {
+        "episodes": 50,
+        "collision_rate": 0.38,
+        "completion_rate": 0.62,
+        "average_episode_reward": 19.064876195022347,
+        "average_episode_duration_seconds": 23.74,
+        "average_speed_mps": 23.90469901670372,
+        "average_distance_travelled_meters": 559.3846419561688,
+        "episodes_with_close_encounter_rate": 1.0,
+        "episodes_with_overtake_rate": 0.88,
+        "average_distinct_close_encounters": 2.32,
+        "average_overtakes": 2.76,
+        "average_lane_changes": 4.0,
+        "average_close_following_steps": 18.56,
+        "average_following_brake_steps": 3.74,
+        "average_minimum_front_gap_meters": 4.859557961958713
+      },
+      "random": {
+        "episodes": 50,
+        "collision_rate": 0.92,
+        "completion_rate": 0.08,
+        "average_episode_reward": 8.25409618765919,
+        "average_episode_duration_seconds": 11.06,
+        "average_speed_mps": 24.55156358272773,
+        "average_distance_travelled_meters": 263.2846146039957,
+        "episodes_with_close_encounter_rate": 0.94,
+        "episodes_with_overtake_rate": 0.48,
+        "average_distinct_close_encounters": 1.68,
+        "average_overtakes": 0.8,
+        "average_lane_changes": 2.94,
+        "average_close_following_steps": 7.02,
+        "average_following_brake_steps": 0.74,
+        "average_minimum_front_gap_meters": 2.5406950918081463
+      },
+      "versions": {
+        "highway-env": "1.12.1",
+        "gymnasium": "1.4.0",
+        "stable-baselines3": "2.9.2",
+        "torch": "2.15.0",
+        "numpy": "2.5.4"
+      }
+    },
+    {
+      "run": "dqn_quickstart_seed1",
+      "training_seed": 1,
+      "actual_timesteps": 20000,
+      "training_seconds": 735.4333092000161,
+      "evaluation_first_seed": 10000,
+      "dqn": {
+        "episodes": 50,
+        "collision_rate": 0.38,
+        "completion_rate": 0.62,
+        "average_episode_reward": 20.18552344752422,
+        "average_episode_duration_seconds": 24.68,
+        "average_speed_mps": 24.02737977941506,
+        "average_distance_travelled_meters": 593.4968963689,
+        "episodes_with_close_encounter_rate": 1.0,
+        "episodes_with_overtake_rate": 0.94,
+        "average_distinct_close_encounters": 2.58,
+        "average_overtakes": 3.28,
+        "average_lane_changes": 3.08,
+        "average_close_following_steps": 18.3,
+        "average_following_brake_steps": 4.38,
+        "average_minimum_front_gap_meters": 4.233297186996186
+      },
+      "random": {
+        "episodes": 50,
+        "collision_rate": 0.92,
+        "completion_rate": 0.08,
+        "average_episode_reward": 8.25409618765919,
+        "average_episode_duration_seconds": 11.06,
+        "average_speed_mps": 24.55156358272773,
+        "average_distance_travelled_meters": 263.2846146039957,
+        "episodes_with_close_encounter_rate": 0.94,
+        "episodes_with_overtake_rate": 0.48,
+        "average_distinct_close_encounters": 1.68,
+        "average_overtakes": 0.8,
+        "average_lane_changes": 2.94,
+        "average_close_following_steps": 7.02,
+        "average_following_brake_steps": 0.74,
+        "average_minimum_front_gap_meters": 2.5406950918081463
+      },
+      "versions": {
+        "highway-env": "1.12.1",
+        "gymnasium": "1.4.0",
+        "stable-baselines3": "2.9.2",
+        "torch": "2.15.0",
+        "numpy": "2.5.4"
+      }
+    },
+    {
+      "run": "dqn_quickstart_seed2",
+      "training_seed": 2,
+      "actual_timesteps": 20000,
+      "training_seconds": 736.3608215000131,
+      "evaluation_first_seed": 10000,
+      "dqn": {
+        "episodes": 50,
+        "collision_rate": 0.36,
+        "completion_rate": 0.64,
+        "average_episode_reward": 19.93173053571662,
+        "average_episode_duration_seconds": 25.58,
+        "average_speed_mps": 22.749977146697674,
+        "average_distance_travelled_meters": 581.4383415031473,
+        "episodes_with_close_encounter_rate": 1.0,
+        "episodes_with_overtake_rate": 0.86,
+        "average_distinct_close_encounters": 1.6,
+        "average_overtakes": 2.1,
+        "average_lane_changes": 1.44,
+        "average_close_following_steps": 18.04,
+        "average_following_brake_steps": 2.7,
+        "average_minimum_front_gap_meters": 7.493258462960357
+      },
+      "random": {
+        "episodes": 50,
+        "collision_rate": 0.92,
+        "completion_rate": 0.08,
+        "average_episode_reward": 8.25409618765919,
+        "average_episode_duration_seconds": 11.06,
+        "average_speed_mps": 24.55156358272773,
+        "average_distance_travelled_meters": 263.2846146039957,
+        "episodes_with_close_encounter_rate": 0.94,
+        "episodes_with_overtake_rate": 0.48,
+        "average_distinct_close_encounters": 1.68,
+        "average_overtakes": 0.8,
+        "average_lane_changes": 2.94,
+        "average_close_following_steps": 7.02,
+        "average_following_brake_steps": 0.74,
+        "average_minimum_front_gap_meters": 2.5406950918081463
+      },
+      "versions": {
+        "highway-env": "1.12.1",
+        "gymnasium": "1.4.0",
+        "stable-baselines3": "2.9.2",
+        "torch": "2.15.0",
+        "numpy": "2.5.4"
+      }
+    },
+    {
+      "run": "dqn_quickstart_seed3",
+      "training_seed": 3,
+      "actual_timesteps": 20000,
+      "training_seconds": 737.7301281999971,
+      "evaluation_first_seed": 10000,
+      "dqn": {
+        "episodes": 50,
+        "collision_rate": 0.2,
+        "completion_rate": 0.8,
+        "average_episode_reward": 21.212170971906115,
+        "average_episode_duration_seconds": 27.32,
+        "average_speed_mps": 22.720376250160502,
+        "average_distance_travelled_meters": 619.9478742932546,
+        "episodes_with_close_encounter_rate": 0.96,
+        "episodes_with_overtake_rate": 0.9,
+        "average_distinct_close_encounters": 1.78,
+        "average_overtakes": 2.22,
+        "average_lane_changes": 2.34,
+        "average_close_following_steps": 19.4,
+        "average_following_brake_steps": 3.06,
+        "average_minimum_front_gap_meters": 8.40597561162379
+      },
+      "random": {
+        "episodes": 50,
+        "collision_rate": 0.92,
+        "completion_rate": 0.08,
+        "average_episode_reward": 8.25409618765919,
+        "average_episode_duration_seconds": 11.06,
+        "average_speed_mps": 24.55156358272773,
+        "average_distance_travelled_meters": 263.2846146039957,
+        "episodes_with_close_encounter_rate": 0.94,
+        "episodes_with_overtake_rate": 0.48,
+        "average_distinct_close_encounters": 1.68,
+        "average_overtakes": 0.8,
+        "average_lane_changes": 2.94,
+        "average_close_following_steps": 7.02,
+        "average_following_brake_steps": 0.74,
+        "average_minimum_front_gap_meters": 2.5406950918081463
+      },
+      "versions": {
+        "highway-env": "1.12.1",
+        "gymnasium": "1.4.0",
+        "stable-baselines3": "2.9.2",
+        "torch": "2.15.0",
+        "numpy": "2.5.4"
+      }
+    },
+    {
+      "run": "dqn_quickstart_seed4",
+      "training_seed": 4,
+      "actual_timesteps": 20000,
+      "training_seconds": 738.5707705999957,
+      "evaluation_first_seed": 10000,
+      "dqn": {
+        "episodes": 50,
+        "collision_rate": 0.54,
+        "completion_rate": 0.46,
+        "average_episode_reward": 16.391559289951157,
+        "average_episode_duration_seconds": 21.04,
+        "average_speed_mps": 23.49298927871798,
+        "average_distance_travelled_meters": 484.59691799244627,
+        "episodes_with_close_encounter_rate": 0.96,
+        "episodes_with_overtake_rate": 0.74,
+        "average_distinct_close_encounters": 1.48,
+        "average_overtakes": 1.8,
+        "average_lane_changes": 1.4,
+        "average_close_following_steps": 14.24,
+        "average_following_brake_steps": 1.54,
+        "average_minimum_front_gap_meters": 5.982746954791824
+      },
+      "random": {
+        "episodes": 50,
+        "collision_rate": 0.92,
+        "completion_rate": 0.08,
+        "average_episode_reward": 8.25409618765919,
+        "average_episode_duration_seconds": 11.06,
+        "average_speed_mps": 24.55156358272773,
+        "average_distance_travelled_meters": 263.2846146039957,
+        "episodes_with_close_encounter_rate": 0.94,
+        "episodes_with_overtake_rate": 0.48,
+        "average_distinct_close_encounters": 1.68,
+        "average_overtakes": 0.8,
+        "average_lane_changes": 2.94,
+        "average_close_following_steps": 7.02,
+        "average_following_brake_steps": 0.74,
+        "average_minimum_front_gap_meters": 2.5406950918081463
+      },
+      "versions": {
+        "highway-env": "1.12.1",
+        "gymnasium": "1.4.0",
+        "stable-baselines3": "2.9.2",
+        "torch": "2.15.0",
+        "numpy": "2.5.4"
+      }
+    }
+  ],
+  "aggregate": {
+    "dqn": {
+      "completion_rate": {
+        "mean": 0.6279999999999999,
+        "std_across_training_seeds": 0.12049896265113655
+      },
+      "collision_rate": {
+        "mean": 0.372,
+        "std_across_training_seeds": 0.12049896265113655
+      },
+      "average_episode_reward": {
+        "mean": 19.357172088024093,
+        "std_across_training_seeds": 1.826033981129854
+      },
+      "average_episode_duration_seconds": {
+        "mean": 24.471999999999998,
+        "std_across_training_seeds": 2.3289740230410474
+      }
+    },
+    "random": {
+      "completion_rate": {
+        "mean": 0.08,
+        "std_across_training_seeds": 0.0
+      },
+      "collision_rate": {
+        "mean": 0.9200000000000002,
+        "std_across_training_seeds": 1.2412670766236366e-16
+      },
+      "average_episode_reward": {
+        "mean": 8.25409618765919,
+        "std_across_training_seeds": 0.0
+      },
+      "average_episode_duration_seconds": {
+        "mean": 11.06,
+        "std_across_training_seeds": 0.0
+      }
+    }
+  },
+  "interpretation": "Evaluation seeds are paired across policies and shared across training seeds. Uncertainty here is variation across training seeds, not independent traffic samples."
+}

@@ -1,0 +1,74 @@
+{
+  "created_utc": "2026-10-30T22:25:39.735351+00:00",
+  "seed": 7,
+  "requested_timesteps": 512,
+  "num_envs": 4,
+  "training_schedule": {
+    "transitions_per_vector_step": 4,
+    "gradient_updates_per_vector_step": 1,
+    "gradient_updates_per_transition_after_warmup": 0.25
+  },
+  "environment": {
+    "env_config": {
+      "lanes_count": 3,
+      "vehicles_count": 20,
+      "duration": 30,
+      "simulation_frequency": 5,
+      "policy_frequency": 1,
+      "vehicles_density": 1.0,
+      "observation": {
+        "type": "Kinematics",
+        "vehicles_count": 5,
+        "see_behind": true
+      },
+      "screen_width": 1200,
+      "screen_height": 360,
+      "scaling": 5.0,
+      "centering_position": [
+        0.18,
+        0.55
+      ],
+      "real_time_rendering": false
+    },
+    "traffic_config": {
+      "speed_range": [
+        15.0,
+        20.0
+      ],
+      "lead_distance": 35.0,
+      "interaction_gap": 30.0
+    }
+  },
+  "algorithm": "DQN",
+  "policy": "MlpPolicy",
+  "dqn_config": {
+    "learning_rate": 0.0005,
+    "buffer_size": 15000,
+    "learning_starts": 200,
+    "batch_size": 32,
+    "gamma": 0.8,
+    "train_freq": 1,
+    "gradient_steps": 1,
+    "device": "cpu"
+  },
+  "versions": {
+    "highway-env": "1.12.1",
+    "gymnasium": "1.4.0",
+    "stable-baselines3": "2.9.2",
+    "torch": "2.15.0",
+    "numpy": "2.5.4"
+  },
+  "status": "trained",
+  "sb3_defaults": {
+    "exploration_fraction": 0.1,
+    "exploration_initial_eps": 1.0,
+    "exploration_final_eps": 0.05,
+    "target_update_interval": 10000,
+    "net_arch": [
+      64,
+      64
+    ]
+  },
+  "actual_timesteps": 512,
+  "training_seconds": 3.663942400016822
+}

@@ -1,0 +1,17 @@
+[
+  {
+    "episode": 1,
+    "seed": 10000,
+    "reward": 8.978684928857858,
+    "status": "COLLISION",
+    "simulated_seconds": 11.0,
+    "collision": true,
+    "encounter_count": 2,
+    "overtake_count": 4,
+    "lane_changes": 3,
+    "following_brake_steps": 0,
+    "close_following_steps": 4,
+    "min_front_gap": 7.507029092775497,
+    "mean_speed": 26.676518058409343
+  }
+]
