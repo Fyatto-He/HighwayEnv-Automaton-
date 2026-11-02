@@ -66,23 +66,46 @@ All of Marcos's keys are kept. `desired_goal` and `goal_delta` now move with the
 | `anchor` | `(4,)` | Anchor x, y, vx, vy **relative to ego**, normalized with the Kinematics ranges |
 | `slot` | `(4,)` | One-hot of FRONT, BACK, LEFT, RIGHT |
 | `hold_progress` | `(1,)` | Consecutive in-slot decisions ÷ required, in [0, 1] |
+| `slot_error` | `(3,)` | Slot minus ego along the slot lane ÷ 10 m, across it ÷ 4 m, anchor minus ego speed ÷ 10 m/s, clipped to [-1, 1] |
 
 Without the anchor's velocity, the policy would see a moving target only as noise in
-`goal_delta`. With it, the policy can anticipate where the slot is going. The policy is
-still SB3's default `MultiInputPolicy` (50 inputs, 64-64 MLPs), with no custom network.
+`goal_delta`. With it, the policy can anticipate where the slot is going.
+
+`slot_error` was added after the first runs failed. With `goal_delta`'s 200 m scale, the
+±3 m success box spans only ±0.015 of the input. With `slot_error`'s local scale it spans
+±0.3, and the speed mismatch is given directly. It is on by default (`slot_error_features`
+in `config.py`); `train.py --no-slot-error` leaves it out. Model sidecars written before
+the flag existed load without it, so the first 300k checkpoints still evaluate. The
+policy is still SB3's default `MultiInputPolicy` (53 inputs, or 50 without
+`slot_error`, with 64-64 MLPs), with no custom network.
 
 ## Reward
 
 ```text
 reward = 50 * success - 50 * collision + 0.1 * (previous_distance - distance)
          - 0.05 + 0.2 * in_slot
+         + 1.0 * (previous_lateral_error - lateral_error)
+         + 0.5 * (previous_speed_error - speed_error)
 ```
 
 The first four terms are Marcos's. Distance is measured to the *current* slot position,
 and it still telescopes because each step uses the previous step's distance. `hold`
 pays 0.2 per decision spent in the box; even a 5 s hold earns at most 10, well below the
-50-point goal bonus. All five terms are in `info["reward_components"]`, the CSVs and
-TensorBoard.
+50-point goal bonus.
+
+The last two terms, `lane` and `speed_match`, were added after the first runs: PPO never
+moved sideways into a LEFT/RIGHT slot lane.
+- `lateral_error` is ego's distance in meters from the slot lane's center, so each lane
+  closed earns +4.
+- `speed_error` is `|anchor speed - ego speed|`, weighted by a proximity factor that fades
+  from 1 at the slot to 0 at 30 m (`shaping_range`). Far from the slot, ego should catch
+  up, not match speed.
+
+Both terms are differences of consecutive errors, like the progress term. Over an episode
+they sum to the start error minus the end error, so they move credit earlier but cannot be
+farmed by oscillating. `train.py --no-shaping` drops them. Checkpoints trained earlier keep
+their five-term reward from their sidecar. Every term is in `info["reward_components"]`,
+the CSVs and TensorBoard.
 
 ## Commands
 

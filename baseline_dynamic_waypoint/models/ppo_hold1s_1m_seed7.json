@@ -1,0 +1,145 @@
+{
+  "created_utc": "2026-11-02T19:37:24.551806+00:00",
+  "seed": 7,
+  "requested_timesteps": 1000000,
+  "num_envs": 3,
+  "environment": {
+    "env_config": {
+      "lanes_count": 3,
+      "vehicles_count": 8,
+      "controlled_vehicles": 1,
+      "vehicles_density": 0.7,
+      "traffic_speed_range": [
+        12.0,
+        17.0
+      ],
+      "lead_vehicle_gap": 35.0,
+      "ego_spacing": 2.0,
+      "duration": 25.0,
+      "simulation_frequency": 10,
+      "policy_frequency": 10,
+      "offroad_terminal": false,
+      "action": {
+        "type": "DiscreteMetaAction",
+        "target_speeds": [
+          10.0,
+          12.5,
+          15.0,
+          17.5,
+          20.0,
+          22.5,
+          25.0
+        ]
+      },
+      "observation": {
+        "type": "Kinematics",
+        "vehicles_count": 7,
+        "features": [
+          "presence",
+          "x",
+          "y",
+          "vx",
+          "vy"
+        ],
+        "absolute": false,
+        "normalize": true,
+        "clip": true,
+        "see_behind": true,
+        "include_obstacles": false,
+        "order": "sorted",
+        "features_range": {
+          "x": [
+            -200,
+            200
+          ],
+          "y": [
+            -12,
+            12
+          ],
+          "vx": [
+            -30,
+            30
+          ],
+          "vy": [
+            -10,
+            10
+          ]
+        }
+      },
+      "screen_width": 1200,
+      "screen_height": 360,
+      "scaling": 5.0,
+      "centering_position": [
+        0.18,
+        0.55
+      ],
+      "real_time_rendering": false
+    },
+    "goal_config": {
+      "distance_range": [
+        30.0,
+        120.0
+      ],
+      "slot_offsets": {
+        "front": 35.0,
+        "back": 15.0
+      },
+      "radius": 3.0,
+      "lateral_tolerance": 1.5,
+      "hold_seconds": 1.0,
+      "initial_speed": 20.0,
+      "position_scale": [
+        200.0,
+        12.0
+      ],
+      "slot_error_features": false,
+      "slot_error_scale": [
+        10.0,
+        4.0,
+        10.0
+      ]
+    },
+    "reward_weights": {
+      "goal": 50.0,
+      "collision": 50.0,
+      "progress": 0.1,
+      "time": 0.05,
+      "hold": 0.2
+    }
+  },
+  "ppo_config": {
+    "learning_rate": 0.0003,
+    "n_steps": 256,
+    "batch_size": 256,
+    "n_epochs": 5,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.01,
+    "vf_coef": 0.5,
+    "max_grad_norm": 0.5,
+    "policy_kwargs": {
+      "net_arch": {
+        "pi": [
+          64,
+          64
+        ],
+        "vf": [
+          64,
+          64
+        ]
+      }
+    },
+    "device": "cpu"
+  },
+  "versions": {
+    "highway-env": "1.12.1",
+    "gymnasium": "1.4.0",
+    "stable-baselines3": "2.9.2",
+    "torch": "2.15.0",
+    "numpy": "2.5.4"
+  },
+  "status": "trained",
+  "actual_timesteps": 1000704,
+  "training_seconds": 2156.844900291995
+}

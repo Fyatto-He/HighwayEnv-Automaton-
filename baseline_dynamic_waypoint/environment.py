@@ -26,6 +26,12 @@ class DynamicGoalHighwayEnv(GoalHighwayEnv):
             "slot": spaces.Box(0.0, 1.0, (len(SLOTS),), np.float32),
             "hold_progress": spaces.Box(0.0, 1.0, (1,), np.float32),
         })
+        # Checkpoints saved before this key existed lack it in their sidecar: keep their 50 inputs.
+        if self.goal_config.get("slot_error_features", False):
+            self.observation_space = spaces.Dict({
+                **self.observation_space.spaces,
+                "slot_error": spaces.Box(-1.0, 1.0, (3,), np.float32),
+            })
         self.anchor, self.slot, self.anchor_id = None, SLOTS[0], -1
         self.hold_steps, self.hold_required = 0, 1
 
@@ -66,6 +72,7 @@ class DynamicGoalHighwayEnv(GoalHighwayEnv):
         self.hold_steps = 0
         self.hold_required = max(1, round(self.goal_config["hold_seconds"] * self.env_config["policy_frequency"]))
         self._update_goal()
+        self.previous_shaping_errors = self.shaping_errors()
 
     def _slot_lane(self):
         """The slot's lane and its longitudinal coordinate on that lane."""
@@ -83,12 +90,28 @@ class DynamicGoalHighwayEnv(GoalHighwayEnv):
         self.goal_lane = int(self.slot_lane_index[2])
         self.goal_position = self.highway.road.network.get_lane(self.slot_lane_index).position(slot_s, 0).astype(np.float64)
 
-    def in_slot(self):
+    def slot_error(self):
+        """Slot minus ego in the slot lane's frame: (along the lane, across it) in meters."""
         lane = self.highway.road.network.get_lane(self.slot_lane_index)
         ego_s, ego_lateral = lane.local_coordinates(self.highway.vehicle.position)
         slot_s, _ = lane.local_coordinates(self.goal_position)
-        return bool(abs(ego_s - slot_s) < self.goal_config["radius"]
-                    and abs(ego_lateral) < self.goal_config["lateral_tolerance"])
+        return slot_s - ego_s, -ego_lateral
+
+    def shaping_errors(self):
+        """Lateral distance to the slot lane (m), and speed mismatch (m/s) weighted by proximity.
+
+        The speed term only matters within shaping_range meters along the lane: far
+        away, ego should drive fast to catch up rather than match the anchor's speed.
+        """
+        longitudinal, lateral = self.slot_error()
+        # Sidecars written before shaping lack the key; their weights ignore this term anyway.
+        proximity = max(0.0, 1.0 - abs(longitudinal) / self.goal_config.get("shaping_range", 30.0))
+        return abs(lateral), proximity * abs(self.anchor.speed - self.highway.vehicle.speed)
+
+    def in_slot(self):
+        longitudinal, lateral = self.slot_error()
+        return bool(abs(longitudinal) < self.goal_config["radius"]
+                    and abs(lateral) < self.goal_config["lateral_tolerance"])
 
     def anchor_lost(self):
         return bool(self.anchor.crashed or not self.anchor.on_road
@@ -105,6 +128,13 @@ class DynamicGoalHighwayEnv(GoalHighwayEnv):
             for key, value in relative.items()], dtype=np.float32)
         observation["slot"] = np.array([slot == self.slot for slot in SLOTS], dtype=np.float32)
         observation["hold_progress"] = np.array([min(1.0, self.hold_steps / self.hold_required)], dtype=np.float32)
+        if "slot_error" in self.observation_space.spaces:
+            # goal_delta's 200 m scale shrinks the +/-3 m box to +/-0.015; these local
+            # scales make the box +/-0.3 and expose the speed mismatch directly.
+            longitudinal, lateral = self.slot_error()
+            scales = self.goal_config["slot_error_scale"]
+            error = [longitudinal / scales[0], lateral / scales[1], (anchor.speed - ego.speed) / scales[2]]
+            observation["slot_error"] = np.clip(error, -1, 1).astype(np.float32)
         return observation
 
     def step(self, action):
@@ -121,17 +151,25 @@ class DynamicGoalHighwayEnv(GoalHighwayEnv):
         # Losing the anchor ends the task without it being ego's failure, like a timeout.
         truncated = bool((native_truncated or lost) and not terminated)
         weights = self.reward_weights
-        self.last_components = {
+        lateral_error, speed_error = self.shaping_errors()
+        previous_lateral, previous_speed = self.previous_shaping_errors
+        components = {
             "goal": weights["goal"] * float(success),
             "collision": -weights["collision"] * float(collision),
             # Distance to a moving point: still telescopes, since each step uses the previous distance.
             "progress": weights["progress"] * (self.previous_distance - distance),
             "time": -weights["time"],
             "hold": weights["hold"] * float(inside),
+            # Shaping, also telescoping: it only moves credit earlier, it cannot be farmed.
+            "lane": weights.get("lane", 0.0) * (previous_lateral - lateral_error),
+            "speed_match": weights.get("speed_match", 0.0) * (previous_speed - speed_error),
         }
+        # Checkpoints trained before shaping keep exactly their five reward terms.
+        self.last_components = {name: value for name, value in components.items() if name in weights}
         for name, value in self.last_components.items():
             self.episode_totals[name] += value
         self.previous_distance = distance
+        self.previous_shaping_errors = (lateral_error, speed_error)
         self.status = ("GOAL REACHED" if success else "COLLISION" if collision else "ANCHOR LOST" if truncated and lost
                        else "TIMED OUT" if truncated else "HOLDING" if inside else "Driving")
         info = self._info(success, collision, truncated and not lost, anchor_lost=truncated and lost)

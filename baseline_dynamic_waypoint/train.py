@@ -30,8 +30,8 @@ from baseline_waypoint.plot_results import plot_training
 from baseline_waypoint.train import EpisodeMetrics
 
 
-def make_training_env(seed, goal_config):
-    env = DynamicGoalHighwayEnv(goal_config=goal_config)
+def make_training_env(seed, goal_config, reward_weights):
+    env = DynamicGoalHighwayEnv(goal_config=goal_config, reward_weights=reward_weights)
     env.reset(seed=seed)
     return Monitor(env)
 
@@ -40,7 +40,8 @@ class SlotEpisodeMetrics(EpisodeMetrics):
     """Marcos's per-episode CSV and rolling rates, plus hold reward, slot and anchor-lost columns."""
     FIELDS = ["timesteps", "reward", "length", "success", "collision", "timeout", "anchor_lost",
               "elapsed_time", "final_distance", "slot", "goal_lane", "max_hold_steps",
-              "reward_goal", "reward_collision", "reward_progress", "reward_time", "reward_hold"]
+              "reward_goal", "reward_collision", "reward_progress", "reward_time", "reward_hold",
+              "reward_lane", "reward_speed_match"]
 
     def _on_training_start(self):
         self.handle = (self.run_dir / "training_episodes.csv").open("w", newline="", encoding="utf-8")
@@ -81,6 +82,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--hold-seconds", type=float, default=GOAL_CONFIG["hold_seconds"],
                         help="Uninterrupted time ego must stay in the slot (e.g. 1, 3 or 5).")
+    parser.add_argument("--no-slot-error", action="store_true",
+                        help="Leave out the local slot-error input (the original 50-input observation).")
+    parser.add_argument("--no-shaping", action="store_true",
+                        help="Drop the lane and speed_match reward terms (the reward used before shaping).")
     parser.add_argument("--timesteps", type=int, default=TRAINING_TIMESTEPS)
     parser.add_argument("--num-envs", type=int, default=NUM_ENVS)
     parser.add_argument("--seed", type=int, default=SEED)
@@ -99,23 +104,28 @@ def main():
         parser.error("This run already exists. Choose a new --run-name to preserve its results.")
     goal_config = deepcopy(GOAL_CONFIG)
     goal_config["hold_seconds"] = args.hold_seconds
-    DynamicGoalHighwayEnv(goal_config=goal_config).close()  # Reject an invalid hold time before spawning workers.
+    goal_config["slot_error_features"] = not args.no_slot_error
+    reward_weights = {name: weight for name, weight in REWARD_WEIGHTS.items()
+                      if not (args.no_shaping and name in ("lane", "speed_match"))}
+    DynamicGoalHighwayEnv(goal_config=goal_config, reward_weights=reward_weights).close()  # Reject an invalid hold time before spawning workers.
     run_dir.mkdir(parents=True, exist_ok=True)
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     torch.set_num_threads(1)  # Tiny MLPs are faster without a thread pool per inference.
     set_random_seed(args.seed)
-    factories = [partial(make_training_env, args.seed + index, goal_config) for index in range(args.num_envs)]
+    factories = [partial(make_training_env, args.seed + index, goal_config, reward_weights)
+                 for index in range(args.num_envs)]
     vec_env = DummyVecEnv(factories) if args.num_envs == 1 else SubprocVecEnv(factories, start_method="spawn")
     vec_env.seed(args.seed)
     metadata = {
         "created_utc": datetime.now(timezone.utc).isoformat(), "seed": args.seed,
         "requested_timesteps": args.timesteps, "num_envs": args.num_envs,
-        "environment": {"env_config": ENV_CONFIG, "goal_config": goal_config, "reward_weights": REWARD_WEIGHTS},
+        "environment": {"env_config": ENV_CONFIG, "goal_config": goal_config, "reward_weights": reward_weights},
         "ppo_config": PPO_CONFIG,
         "versions": {name: importlib.metadata.version(name) for name in ("highway-env", "gymnasium", "stable-baselines3", "torch", "numpy")},
         "status": "running",
     }
-    print(f"Hold time: {args.hold_seconds:g} s; reward weights: {REWARD_WEIGHTS}", flush=True)
+    print(f"Hold time: {args.hold_seconds:g} s; slot-error input: {not args.no_slot_error}; "
+          f"reward weights: {reward_weights}", flush=True)
     print(f"Training {args.timesteps:,} transitions on {args.num_envs} environment(s) as {name}.", flush=True)
     model = PPO("MultiInputPolicy", vec_env, seed=args.seed, verbose=0, **PPO_CONFIG)
     formats = ["csv"] + ([] if args.quiet else ["stdout"]) + ([] if args.no_tensorboard else ["tensorboard"])

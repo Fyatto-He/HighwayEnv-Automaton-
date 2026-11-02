@@ -68,5 +68,83 @@ part is arriving with the right speed.
    A speed-matching term near the slot, or a curriculum (closer anchors or shorter
    holds first), would give the policy a gradient before its first success.
 
-Recommended next experiment: hypothesis 1 combined with 1M transitions, all else
-unchanged, so the effect can be attributed.
+Hypotheses 1 and 2 were then tested separately (section 3).
+
+## 3. Follow-up: 1M transitions, with and without the `slot_error` input
+
+This tests hypotheses 1 and 2 separately. Four runs, everything else unchanged: seed 7,
+3 subprocess environments each, 1,000,704 transitions, about 36 min per run with all
+four in parallel. Evaluation uses the same 50 paired seeds; the random and scripted
+rows are identical to section 2.
+
+| Hold | Input | Success | Collision | Timeout | Mean return | Successes by slot (F/B/L/R) |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| 1 s | 50 inputs (original) | 2% | 58% | 40% | -30.38 | 0/15, 1/19, 0/8, 0/8 |
+| 1 s | + `slot_error` | **12%** | 24% | 64% | -9.99 | 0/15, 4/19, 2/8, 0/8 |
+| 5 s | 50 inputs (original) | 2% | 10% | 88% | -9.80 | 0/15, 0/19, 1/8, 0/8 |
+| 5 s | + `slot_error` | **8%** | 34% | 58% | -16.80 | 0/15, 4/19, 0/8, 0/8 |
+| any | Scripted reference | 76% | 4% | 20% | 37.8-42.3 | 8/15, 19/19, 6/8, 5/8 |
+
+- **More training alone does not help.** Going from 300k to 1M transitions leaves
+  success at 2%. Collisions fall (88% → 58% for 1 s) and turn into timeouts instead.
+  Every training curve flattens by about 200-400k transitions.
+- **`slot_error` helps a little**, from 1 to 6 successes for 1 s and from 1 to 4 for
+  5 s, out of 50. That is a single seed and few episodes, so treat it as a hint, not
+  an established effect. The gains are mostly BACK, the only slot that never needs
+  an overtake and often needs no lane change.
+- **FRONT never succeeds** in any PPO run. It needs an overtake, a merge and a slow-down.
+- **Lane selection is the visible failure for LEFT/RIGHT.** In `videos_hold1s_1m_slotobs/`
+  episode 4, ego matches the anchor's speed about 12 m from a RIGHT slot but stays two
+  lanes away until the time limit. The Euclidean progress reward gives almost no signal
+  for moving 8 m sideways, a weakness Marcos's README already notes for static goals.
+- The one successful 5 s BACK video (`videos_hold5s_1m_slotobs/episode_02`) is a genuine
+  5 s hold at matched speed (−0.7 m/s relative).
+
+**Conclusion so far:** the inputs and the budget were not the main bottleneck; the
+reward is. PPO finds "approach and match speed", but nothing in the reward guides it
+to the right lane or through an overtake before the first success. Next candidates,
+all of which change the reward: shaping on the lane and speed errors near the slot,
+or a curriculum (closer anchors, BACK/LEFT/RIGHT first, then FRONT).
+
+## 4. Reward shaping: lane and speed-match terms
+
+The two telescoping terms are described in the README: +1.0 per meter of lateral
+distance to the slot lane closed, and +0.5 per m/s of speed mismatch removed within
+30 m of the slot. They are added on top of section 3's `slot_error` input. Everything
+else is unchanged: 1,000,704 transitions, 3 environments, about 30 min per run with
+four in parallel. Two training seeds (7 and 8) estimate the run-to-run spread;
+evaluation uses the same 50 paired seeds as before.
+
+| Hold | Training seed | Success | Collision | Timeout | Mean return | Successes F/B/L/R |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| 1 s | 7 | **54%** | 22% | 24% | 20.38 | 0/15, 17/19, 5/8, 5/8 |
+| 1 s | 8 | **52%** | 14% | 34% | 22.00 | 0/15, 18/19, 6/8, 2/8 |
+| 5 s | 7 | **56%** | 14% | 30% | 28.57 | 0/15, 17/19, 6/8, 5/8 |
+| 5 s | 8 | **54%** | 28% | 18% | 21.63 | 0/15, 16/19, 6/8, 5/8 |
+| 1 s / 5 s | section 3 (no shaping, seed 7) | 12% / 8% | 24% / 34% | 64% / 58% | | |
+| any | Scripted reference | 76% | 4% | 20% | 37.8-42.3 | 8/15, 19/19, 6/8, 5/8 |
+
+- **Shaping is the change that mattered.** Success rises from 8-12% to 52-56%, and both
+  seeds and both hold times agree within 4 points. Training success climbs steadily
+  from about 300k to 550k transitions, then plateaus at about 50-57%.
+- **Hold length barely matters once the policy arrives with the right speed.** The 5 s
+  policies succeed as often as the 1 s ones; their mean longest hold is 2.9 s versus
+  0.55 s.
+- **Without FRONT, PPO is close to the scripted driver.** On BACK/LEFT/RIGHT (35
+  episodes) PPO succeeds 27-28 times in three runs and 26 times in the fourth; the
+  scripted driver succeeds 30 times, and the script reads the true simulator state
+  while PPO only sees its observation.
+- **FRONT is still 0/15 in all four runs.** Traced on the 15 FRONT seeds of the 5 s,
+  seed-7 policy: ego never gets ahead of the anchor. In 14 of 15 episodes it settles
+  about 20-40 m *behind* the anchor at matched speed and times out; the other episode
+  is a collision. That is the BACK behavior applied to the wrong slot. Passing means
+  a lane change plus about 3 s at higher speed next to slower traffic, a long detour
+  that no reward term pays for before the first success.
+- `speed_match` nets about -0.1 to -0.3 per episode, so it contributes little directly.
+  Being telescoping, that means the weighted speed error ends slightly larger than it
+  starts. The lane term (+3.4 per episode) is the shaping term doing the work.
+
+**Remaining failure modes:** FRONT overtakes, and collisions (14-28%) mostly during
+lane changes into LEFT/RIGHT slots. Next candidates: a curriculum that starts FRONT
+with anchors already beside or slightly behind ego, or a shaping term on the
+longitudinal *order* (ahead of the anchor versus behind it) for FRONT.

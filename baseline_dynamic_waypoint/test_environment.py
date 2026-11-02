@@ -160,6 +160,69 @@ class DynamicGoalTests(unittest.TestCase):
         expected = env.reward_weights["progress"] * (initial["distance_to_goal"] - info["distance_to_goal"])
         self.assertAlmostEqual(info["reward_components"]["progress"], expected)
 
+    def test_slot_error_input_matches_slot_geometry(self):
+        env = self.make_env()
+        self.assertIn("slot_error", env.observation_space.spaces)
+        scales = env.goal_config["slot_error_scale"]
+        self.reset_with_slot(env, "left")
+        self.place_in_slot(env, longitudinal=-2.0)  # 2 m behind the slot center
+        ego = env.highway.vehicle
+        ego.position[1] += 0.5
+        ego.speed = env.anchor.speed - 3.0
+        obs = env._observation(env.highway.observation_type.observe())
+        np.testing.assert_allclose(obs["slot_error"], [2.0 / scales[0], -0.5 / scales[1], 3.0 / scales[2]], atol=1e-5)
+        self.assertTrue(env.observation_space.contains(obs))
+        goal = deepcopy(GOAL_CONFIG)
+        goal["slot_error_features"] = False
+        plain = DynamicGoalHighwayEnv(goal_config=goal)
+        self.addCleanup(plain.close)
+        self.assertNotIn("slot_error", plain.reset(seed=7)[0])
+
+    def test_shaping_terms_telescope_and_sum_to_the_reward(self):
+        env = self.make_env()
+        _, info = self.reset_with_slot(env, "right")
+        first_lateral, first_speed = env.shaping_errors()
+        self.assertGreater(first_lateral, 0.0)  # Ego starts outside the slot lane in this episode.
+        totals = {"lane": 0.0, "speed_match": 0.0}
+        for _ in range(40):
+            _, reward, terminated, truncated, info = env.step(2)  # LANE_RIGHT toward the slot lane
+            self.assertAlmostEqual(reward, sum(info["reward_components"].values()))
+            for name in totals:
+                totals[name] += info["reward_components"][name]
+            if terminated or truncated:
+                break
+        lateral, speed = env.shaping_errors()
+        self.assertAlmostEqual(totals["lane"], env.reward_weights["lane"] * (first_lateral - lateral))
+        self.assertAlmostEqual(totals["speed_match"], env.reward_weights["speed_match"] * (first_speed - speed))
+        self.assertGreater(totals["lane"], 0.0)
+        # Far from the slot the speed mismatch is not penalized at all.
+        env.reset(seed=7)
+        longitudinal, _ = env.slot_error()
+        if abs(longitudinal) >= env.goal_config["shaping_range"]:
+            self.assertEqual(env.shaping_errors()[1], 0.0)
+
+    def test_old_reward_weights_keep_five_terms(self):
+        from baseline_dynamic_waypoint.config import REWARD_WEIGHTS
+        weights = {name: value for name, value in REWARD_WEIGHTS.items() if name not in ("lane", "speed_match")}
+        env = DynamicGoalHighwayEnv(reward_weights=weights)
+        self.addCleanup(env.close)
+        env.reset(seed=7)
+        _, reward, _, _, info = env.step(1)
+        self.assertEqual(set(info["reward_components"]), {"goal", "collision", "progress", "time", "hold"})
+        self.assertAlmostEqual(reward, sum(info["reward_components"].values()))
+
+    def test_checkpoints_without_slot_error_still_load_and_run(self):
+        from baseline_dynamic_waypoint.config import MODELS_DIR
+        from baseline_dynamic_waypoint.evaluate import load_experiment
+        model_path = MODELS_DIR / "ppo_hold1s_seed7.zip"
+        if not model_path.exists():
+            self.skipTest("First 300k checkpoint is not present.")
+        model, env, _ = load_experiment(model_path)
+        self.addCleanup(env.close)
+        obs, _ = env.reset(seed=7)
+        self.assertNotIn("slot_error", obs)
+        env.step(int(model.predict(obs, deterministic=True)[0]))
+
     def test_scripted_driver_can_hold_every_slot_for_five_seconds(self):
         """Feasibility: each slot type is reachable and holdable with native actions."""
         env = self.make_env(hold_seconds=5.0)

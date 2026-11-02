@@ -83,7 +83,7 @@ def summarize(rows):
         "success_rate_by_slot": {slot: mean("success", [row for row in rows if row["slot"] == slot])
                                  for slot in SLOTS if any(row["slot"] == slot for row in rows)},
         "episodes_by_slot": {slot: sum(row["slot"] == slot for row in rows) for slot in SLOTS},
-        "average_reward_components": {name: mean(f"reward_{name}") for name in ("goal", "collision", "progress", "time", "hold")},
+        "average_reward_components": {key[len("reward_"):]: mean(key) for key in rows[0] if key.startswith("reward_")},
     })
     return summary
 
