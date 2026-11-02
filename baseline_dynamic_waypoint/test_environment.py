@@ -181,7 +181,7 @@ class DynamicGoalTests(unittest.TestCase):
     def test_shaping_terms_telescope_and_sum_to_the_reward(self):
         env = self.make_env()
         _, info = self.reset_with_slot(env, "right")
-        first_lateral, first_speed = env.shaping_errors()
+        first_lateral, first_speed, _ = env.shaping_errors()
         self.assertGreater(first_lateral, 0.0)  # Ego starts outside the slot lane in this episode.
         totals = {"lane": 0.0, "speed_match": 0.0}
         for _ in range(40):
@@ -191,19 +191,70 @@ class DynamicGoalTests(unittest.TestCase):
                 totals[name] += info["reward_components"][name]
             if terminated or truncated:
                 break
-        lateral, speed = env.shaping_errors()
+        lateral, speed, _ = env.shaping_errors()
         self.assertAlmostEqual(totals["lane"], env.reward_weights["lane"] * (first_lateral - lateral))
         self.assertAlmostEqual(totals["speed_match"], env.reward_weights["speed_match"] * (first_speed - speed))
         self.assertGreater(totals["lane"], 0.0)
         # Far from the slot the speed mismatch is not penalized at all.
         env.reset(seed=7)
         longitudinal, _ = env.slot_error()
-        if abs(longitudinal) >= env.goal_config["shaping_range"]:
+        if abs(longitudinal) >= env.goal_config["shaping_range"] and info["slot"] != "front":
             self.assertEqual(env.shaping_errors()[1], 0.0)
+
+    def test_front_overtake_targets_the_passing_lane_then_the_slot_lane(self):
+        env = self.make_env()
+        self.reset_with_slot(env, "front")
+        ego, anchor = env.highway.vehicle, env.anchor
+        network = env.highway.road.network
+        road, start, anchor_lane = anchor.lane_index
+        passing = anchor_lane - 1 if anchor_lane > 0 else anchor_lane + 1
+        # Behind the anchor in its own lane: one lane away from the passing lane.
+        ego.position = network.get_lane(anchor.lane_index).position(
+            network.get_lane(anchor.lane_index).local_coordinates(anchor.position)[0] - 20, 0).astype(float)
+        lateral, _, lead = env.shaping_errors()
+        self.assertAlmostEqual(lateral, 4.0)
+        self.assertAlmostEqual(lead, -20.0)
+        # Beside the anchor in the passing lane: no lateral error yet.
+        ego.position = network.get_lane((road, start, passing)).position(
+            network.get_lane((road, start, passing)).local_coordinates(anchor.position)[0], 0).astype(float)
+        lateral, _, lead = env.shaping_errors()
+        self.assertAlmostEqual(lateral, 0.0)
+        # Past the anchor by more than pass_margin: back to the slot lane; lead is capped.
+        lane = network.get_lane(anchor.lane_index)
+        ego.position = lane.position(lane.local_coordinates(anchor.position)[0] + 50, 0).astype(float)
+        lateral, _, lead = env.shaping_errors()
+        self.assertAlmostEqual(lateral, 0.0)
+        self.assertEqual(lead, env.goal_config["slot_offsets"]["front"])
+        # The overtake term pays the change in lead, and is zero for other slots.
+        _, info = self.reset_with_slot(env, "front")
+        _, _, start_lead = env.shaping_errors()
+        _, _, _, _, info = env.step(3)  # FASTER
+        _, _, lead = env.shaping_errors()
+        self.assertAlmostEqual(info["reward_components"]["overtake"], env.reward_weights["overtake"] * (lead - start_lead))
+        self.reset_with_slot(env, "back")
+        _, _, _, _, info = env.step(3)
+        self.assertEqual(info["reward_components"]["overtake"], 0.0)
+
+    def test_section_4_checkpoints_keep_their_reward_without_overtake(self):
+        from baseline_dynamic_waypoint.config import MODELS_DIR
+        from baseline_dynamic_waypoint.evaluate import load_experiment
+        model_path = MODELS_DIR / "ppo_hold1s_1m_shaped_seed7.zip"
+        if not model_path.exists():
+            self.skipTest("Section 4 checkpoint is not present.")
+        model, env, _ = load_experiment(model_path)
+        self.addCleanup(env.close)
+        self.assertNotIn("overtake", env.reward_weights)
+        self.reset_with_slot(env, "front")
+        lateral, _, lead = env.shaping_errors()
+        self.assertEqual(lead, 0.0)
+        self.assertAlmostEqual(lateral, abs(env.slot_error()[1]))  # Slot lane, as when it was trained.
+        obs = env._observation(env.highway.observation_type.observe())
+        _, _, _, _, info = env.step(int(model.predict(obs, deterministic=True)[0]))
+        self.assertNotIn("overtake", info["reward_components"])
 
     def test_old_reward_weights_keep_five_terms(self):
         from baseline_dynamic_waypoint.config import REWARD_WEIGHTS
-        weights = {name: value for name, value in REWARD_WEIGHTS.items() if name not in ("lane", "speed_match")}
+        weights = {name: value for name, value in REWARD_WEIGHTS.items() if name not in ("lane", "speed_match", "overtake")}
         env = DynamicGoalHighwayEnv(reward_weights=weights)
         self.addCleanup(env.close)
         env.reset(seed=7)

@@ -47,11 +47,15 @@ GOAL_CONFIG = {
     "slot_error_scale": [10.0, 4.0, 10.0],
     # Along-lane distance (m) over which the speed_match shaping fades in near the slot.
     "shaping_range": 30.0,
+    # With the overtake term, a FRONT slot's lane target is a lane beside the anchor
+    # until ego leads it by this many meters (center to center; 5 m bumper clearance).
+    "pass_margin": 10.0,
 }
 
 # lane: per meter of lateral distance to the slot lane closed (4 m lanes, so +4 per lane).
 # speed_match: per m/s of speed mismatch removed while within shaping_range of the slot.
-# Both are differences of consecutive errors, so they telescope like Marcos's progress term.
-REWARD_WEIGHTS = {**STATIC_REWARD_WEIGHTS, "hold": 0.2, "lane": 1.0, "speed_match": 0.5}
+# overtake (FRONT only): per meter of lead gained on the anchor, up to the slot offset.
+# All are differences of consecutive errors, so they telescope like Marcos's progress term.
+REWARD_WEIGHTS = {**STATIC_REWARD_WEIGHTS, "hold": 0.2, "lane": 1.0, "speed_match": 0.5, "overtake": 0.3}
 
 PPO_CONFIG = deepcopy(STATIC_PPO_CONFIG)

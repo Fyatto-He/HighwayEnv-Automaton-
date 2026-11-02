@@ -148,3 +148,47 @@ evaluation uses the same 50 paired seeds as before.
 lane changes into LEFT/RIGHT slots. Next candidates: a curriculum that starts FRONT
 with anchors already beside or slightly behind ego, or a shaping term on the
 longitudinal *order* (ahead of the anchor versus behind it) for FRONT.
+
+## 5. FRONT: overtake shaping
+
+**Diagnosis of section 4's FRONT failure.** For a FRONT slot the target lane *is* the
+anchor's lane, so the lane term charged -4 for pulling out to pass and paid it back only
+after the merge, discounted and through traffic. The shaping actively discouraged the
+maneuver FRONT needs.
+
+**Change.** This only applies when the new `overtake` weight is present, so section 4
+checkpoints reproduce exactly (tested).
+- Until ego leads the anchor by 10 m, a FRONT slot's lane target is the nearest lane
+  beside the anchor.
+- A new telescoping `overtake` term pays 0.3 per meter of lead gained on the anchor,
+  capped at the 35 m offset.
+- Everything else is as in section 4: same 2 seeds × 2 hold times and the same evaluation.
+
+| Hold | Training seed | Success | Collision | Timeout | Successes F/B/L/R | Section 4 success |
+| --- | --- | ---: | ---: | ---: | --- | ---: |
+| 1 s | 7 | 40% | 30% | 30% | 0/15, 12/19, 4/8, 4/8 | 54% |
+| 1 s | 8 | 40% | 28% | 32% | **3/15**, 6/19, 6/8, 5/8 | 52% |
+| 5 s | 7 | **64%** | 34% | 2% | **4/15**, 17/19, 5/8, 6/8 | 56% |
+| 5 s | 8 | 58% | 36% | 6% | **2/15**, 16/19, 6/8, 5/8 | 54% |
+
+- **FRONT is now learnable.** Three of the four runs succeed on FRONT in evaluation
+  (2-4 of 15; it was 0 in every earlier run). Training FRONT success was still climbing
+  at 1M in those runs (final sixths: 30%, 22%, 5%).
+  `videos_hold5s_1m_overtake_front_success/` shows a genuine overtake: ego passes the
+  anchor in the lane beside it at +8.5 m/s, merges back 35 m ahead, and holds the
+  slot for 5 s.
+- **But collisions rose to 28-36%**, and the overall effect is mixed: 5 s holds gained
+  2-8 points, 1 s holds lost 12-14 points. The 1 s seed-8 run also shows a large BACK
+  drop (6/19, 12 timeouts). With two seeds per setting this is within plausible
+  run-to-run noise, so no overall gain or loss is established.
+- **The FRONT crashes expose a flaw in the new term.** Traced on the 15 FRONT seeds of
+  the 5 s, seed-7 policy: all 11 collisions are rear-end hits at 18-23 m/s. **5 hit
+  the anchor itself from behind in its own lane.** The overtake term pays for any gain
+  on the anchor, including driving straight at it in its lane, so it rewards ramming as
+  much as passing. The other 6 rear-end other cars ahead in ego's lane.
+
+**Proposed fix (not yet run).** While ego is behind the anchor *in the anchor's own
+lane*, cap the lead at a safe following gap, e.g. `min(lead, -15 m)`. Closing to a
+safe distance still pays and passing in the next lane pays in full, but driving into
+the anchor earns nothing. The potential stays continuous when ego changes lanes at
+the cap, so it still telescopes.

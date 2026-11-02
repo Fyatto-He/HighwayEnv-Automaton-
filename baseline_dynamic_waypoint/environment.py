@@ -98,15 +98,29 @@ class DynamicGoalHighwayEnv(GoalHighwayEnv):
         return slot_s - ego_s, -ego_lateral
 
     def shaping_errors(self):
-        """Lateral distance to the slot lane (m), and speed mismatch (m/s) weighted by proximity.
+        """(lateral error m, speed error m/s, lead over the anchor m) for the shaping terms.
 
         The speed term only matters within shaping_range meters along the lane: far
         away, ego should drive fast to catch up rather than match the anchor's speed.
+        With the overtake term enabled, a FRONT slot's lateral target is the nearest
+        lane beside the anchor until ego has passed it, so the lane term no longer
+        punishes the detour an overtake needs. The lead is 0 for other slots.
         """
         longitudinal, lateral = self.slot_error()
         # Sidecars written before shaping lack the key; their weights ignore this term anyway.
         proximity = max(0.0, 1.0 - abs(longitudinal) / self.goal_config.get("shaping_range", 30.0))
-        return abs(lateral), proximity * abs(self.anchor.speed - self.highway.vehicle.speed)
+        speed_error = proximity * abs(self.anchor.speed - self.highway.vehicle.speed)
+        if self.slot != "front" or "overtake" not in self.reward_weights:
+            return abs(lateral), speed_error, 0.0
+        network, ego = self.highway.road.network, self.highway.vehicle
+        anchor_lane = network.get_lane(self.anchor.lane_index)
+        lead = anchor_lane.local_coordinates(ego.position)[0] - anchor_lane.local_coordinates(self.anchor.position)[0]
+        if lead < self.goal_config["pass_margin"]:
+            road, start, lane_id = self.anchor.lane_index
+            beside = [(road, start, lane) for lane in (lane_id - 1, lane_id + 1)
+                      if 0 <= lane < self.env_config["lanes_count"]]
+            lateral = min(abs(network.get_lane(index).local_coordinates(ego.position)[1]) for index in beside)
+        return abs(lateral), speed_error, float(np.clip(lead, -150.0, self.goal_config["slot_offsets"]["front"]))
 
     def in_slot(self):
         longitudinal, lateral = self.slot_error()
@@ -151,8 +165,8 @@ class DynamicGoalHighwayEnv(GoalHighwayEnv):
         # Losing the anchor ends the task without it being ego's failure, like a timeout.
         truncated = bool((native_truncated or lost) and not terminated)
         weights = self.reward_weights
-        lateral_error, speed_error = self.shaping_errors()
-        previous_lateral, previous_speed = self.previous_shaping_errors
+        lateral_error, speed_error, lead = self.shaping_errors()
+        previous_lateral, previous_speed, previous_lead = self.previous_shaping_errors
         components = {
             "goal": weights["goal"] * float(success),
             "collision": -weights["collision"] * float(collision),
@@ -163,13 +177,15 @@ class DynamicGoalHighwayEnv(GoalHighwayEnv):
             # Shaping, also telescoping: it only moves credit earlier, it cannot be farmed.
             "lane": weights.get("lane", 0.0) * (previous_lateral - lateral_error),
             "speed_match": weights.get("speed_match", 0.0) * (previous_speed - speed_error),
+            # FRONT only: per meter gained on the anchor, capped at the slot offset.
+            "overtake": weights.get("overtake", 0.0) * (lead - previous_lead),
         }
         # Checkpoints trained before shaping keep exactly their five reward terms.
         self.last_components = {name: value for name, value in components.items() if name in weights}
         for name, value in self.last_components.items():
             self.episode_totals[name] += value
         self.previous_distance = distance
-        self.previous_shaping_errors = (lateral_error, speed_error)
+        self.previous_shaping_errors = (lateral_error, speed_error, lead)
         self.status = ("GOAL REACHED" if success else "COLLISION" if collision else "ANCHOR LOST" if truncated and lost
                        else "TIMED OUT" if truncated else "HOLDING" if inside else "Driving")
         info = self._info(success, collision, truncated and not lost, anchor_lost=truncated and lost)

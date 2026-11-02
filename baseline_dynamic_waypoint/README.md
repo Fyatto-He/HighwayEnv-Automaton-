@@ -86,6 +86,7 @@ reward = 50 * success - 50 * collision + 0.1 * (previous_distance - distance)
          - 0.05 + 0.2 * in_slot
          + 1.0 * (previous_lateral_error - lateral_error)
          + 0.5 * (previous_speed_error - speed_error)
+         + 0.3 * (lead - previous_lead)              # FRONT only
 ```
 
 The first four terms are Marcos's. Distance is measured to the *current* slot position,
@@ -101,9 +102,16 @@ moved sideways into a LEFT/RIGHT slot lane.
   from 1 at the slot to 0 at 30 m (`shaping_range`). Far from the slot, ego should catch
   up, not match speed.
 
-Both terms are differences of consecutive errors, like the progress term. Over an episode
-they sum to the start error minus the end error, so they move credit earlier but cannot be
-farmed by oscillating. `train.py --no-shaping` drops them. Checkpoints trained earlier keep
+- `overtake` (FRONT only, weight 0.3) pays per meter of ego's lead over the anchor along
+  its lane, capped at the 35 m slot offset. With this term enabled, a FRONT slot's lane
+  target is the nearest lane *beside* the anchor until ego leads it by 10 m
+  (`pass_margin`). Without that, the lane term charges -4 for pulling out to pass and
+  pays it back only after the merge, which discourages exactly the maneuver FRONT needs.
+
+All shaping terms are differences of consecutive errors, like the progress term. Over an
+episode they sum to the start error minus the end error, so they move credit earlier but
+cannot be farmed by oscillating. `train.py --no-shaping` drops all of them, and
+`--no-overtake` drops only the FRONT term. Checkpoints trained earlier keep
 their five-term reward from their sidecar. Every term is in `info["reward_components"]`,
 the CSVs and TensorBoard.
 

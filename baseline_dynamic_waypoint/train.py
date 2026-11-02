@@ -41,7 +41,7 @@ class SlotEpisodeMetrics(EpisodeMetrics):
     FIELDS = ["timesteps", "reward", "length", "success", "collision", "timeout", "anchor_lost",
               "elapsed_time", "final_distance", "slot", "goal_lane", "max_hold_steps",
               "reward_goal", "reward_collision", "reward_progress", "reward_time", "reward_hold",
-              "reward_lane", "reward_speed_match"]
+              "reward_lane", "reward_speed_match", "reward_overtake"]
 
     def _on_training_start(self):
         self.handle = (self.run_dir / "training_episodes.csv").open("w", newline="", encoding="utf-8")
@@ -85,7 +85,9 @@ def main():
     parser.add_argument("--no-slot-error", action="store_true",
                         help="Leave out the local slot-error input (the original 50-input observation).")
     parser.add_argument("--no-shaping", action="store_true",
-                        help="Drop the lane and speed_match reward terms (the reward used before shaping).")
+                        help="Drop the lane, speed_match and overtake terms (the reward used before shaping).")
+    parser.add_argument("--no-overtake", action="store_true",
+                        help="Drop only the FRONT overtake term (the shaping used before it existed).")
     parser.add_argument("--timesteps", type=int, default=TRAINING_TIMESTEPS)
     parser.add_argument("--num-envs", type=int, default=NUM_ENVS)
     parser.add_argument("--seed", type=int, default=SEED)
@@ -106,7 +108,8 @@ def main():
     goal_config["hold_seconds"] = args.hold_seconds
     goal_config["slot_error_features"] = not args.no_slot_error
     reward_weights = {name: weight for name, weight in REWARD_WEIGHTS.items()
-                      if not (args.no_shaping and name in ("lane", "speed_match"))}
+                      if not (args.no_shaping and name in ("lane", "speed_match", "overtake"))
+                      and not (args.no_overtake and name == "overtake")}
     DynamicGoalHighwayEnv(goal_config=goal_config, reward_weights=reward_weights).close()  # Reject an invalid hold time before spawning workers.
     run_dir.mkdir(parents=True, exist_ok=True)
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
