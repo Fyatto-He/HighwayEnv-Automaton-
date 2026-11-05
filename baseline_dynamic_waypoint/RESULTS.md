@@ -184,8 +184,9 @@ checkpoints reproduce exactly (tested).
 - **The FRONT crashes expose a flaw in the new term.** Traced on the 15 FRONT seeds of
   the 5 s, seed-7 policy: all 11 collisions are rear-end hits at 18-23 m/s. **5 hit
   the anchor itself from behind in its own lane.** The overtake term pays for any gain
-  on the anchor, including driving straight at it in its lane, so it rewards ramming as
-  much as passing. The other 6 rear-end other cars ahead in ego's lane.
+  on the anchor, in its own lane as much as in the passing lane. It pushes ego to close
+  in fast but gives no reason to pull out first; the crash penalty arrives only at
+  contact. The other 6 rear-end other cars ahead in ego's lane.
 
 **Proposed fix (not yet run).** While ego is behind the anchor *in the anchor's own
 lane*, cap the lead at a safe following gap, e.g. `min(lead, -15 m)`. Closing to a
